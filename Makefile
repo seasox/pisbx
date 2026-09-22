@@ -1,4 +1,4 @@
-INSTALLDIR?=/usr/local/bin
+INSTALLDIR?=$${HOME}/.local/bin
 
 all:
 	docker build -t pi-sandbox -f Dockerfile.pi .
