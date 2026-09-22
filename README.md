@@ -18,13 +18,13 @@ Run the [pi coding agent](https://www.npmjs.com/package/@earendil-works/pi-codin
 One line:
 
 ```sh
-curl -fsSL https://git.uni-luebeck.de/jeremyboy/pisbx/-/raw/main/install.sh | bash
+curl -fsSL  | bash
 ```
 
 or with wget:
 
 ```sh
-wget -qO- https://git.uni-luebeck.de/jeremyboy/pisbx/-/raw/main/install.sh | bash
+wget -qO- https://raw.githubusercontent.com/seasox/pisbx/refs/heads/main/install.s | bash
 ```
 
 The installer downloads the launcher and the `Dockerfile.pi`, builds the `pi-sandbox` image, and installs the `pisbx` launcher to `~/.local/bin` (or `/usr/local/bin` when run as root). If that directory is not on your `PATH`, it tells you how to fix that.
@@ -32,13 +32,13 @@ The installer downloads the launcher and the `Dockerfile.pi`, builds the `pi-san
 The one-liner needs the repository to be publicly readable. For a private repository, pass a GitLab access token instead (note that the token ends up in your shell history and process list):
 
 ```sh
-curl -fsSL https://git.uni-luebeck.de/jeremyboy/pisbx/-/raw/main/install.sh | PISBX_TOKEN=<gitlab-access-token> bash
+curl -fsSL https://raw.githubusercontent.com/seasox/pisbx/refs/heads/main/install.s | bash
 ```
 
 Alternatively, install from a checkout — the installer then uses the local files:
 
 ```sh
-git clone https://git.uni-luebeck.de/jeremyboy/pisbx.git
+git clone https://github.com/seasox/pisbx
 cd pisbx
 ./install.sh            # or: make install
 ```
@@ -94,7 +94,7 @@ PISBX_VOLUME=pisbx pisbx
 - **Image**: Docker's layer cache keeps the old `pi` version on a plain rebuild. To pick up the latest release:
 
   ```sh
-  curl -fsSL https://git.uni-luebeck.de/jeremyboy/pisbx/-/raw/main/install.sh | PISBX_NOCACHE=1 bash
+  curl -fsSL https://raw.githubusercontent.com/seasox/pisbx/refs/heads/main/install.sh | PISBX_NOCACHE=1 bash
   ```
 
   or from a checkout: `make refresh`.

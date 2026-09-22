@@ -1,10 +1,10 @@
 #!/bin/sh
 # pisbx installer — run the pi coding agent inside a Docker sandbox.
 #
-# Quick install (the repository must be publicly readable):
-#   curl -fsSL https://git.uni-luebeck.de/jeremyboy/pisbx/-/raw/main/install.sh | bash
+# Quick install:
+#   curl -fsSL https://raw.githubusercontent.com/seasox/pisbx/refs/heads/main/install.sh | bash
 # or:
-#   wget -qO- https://git.uni-luebeck.de/jeremyboy/pisbx/-/raw/main/install.sh | bash
+#   wget -qO- https://raw.githubusercontent.com/seasox/pisbx/refs/heads/main/install.sh | bash
 #
 # Environment variables (all optional):
 #   INSTALLDIR        target directory for the pisbx launcher
