@@ -21,7 +21,7 @@ set -eu
 
 REPO="${PISBX_REPO:-https://github.com/seasox/pisbx}"
 REF="${PISBX_REF:-main}"
-RAW_BASE="${REPO}/-/raw/${REF}"
+RAW_BASE="${REPO}/refs/heads/${REF}"
 
 say() { printf '==> %s\n' "$*"; }
 die() {
