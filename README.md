@@ -1,5 +1,9 @@
 # pisbx
 
+<p align="center">
+  <img src="pisbx.png" alt="pisbx logo" width="200">
+</p>
+
 Run the [pi coding agent](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) inside a Docker sandbox.
 
 `pisbx` launches `pi` in an ephemeral container with the pi agent state persisted in a Docker volume, your credentials mounted read-only, and your current directory mounted at `/workspace`.
