@@ -19,16 +19,19 @@
 
 set -eu
 
-REPO="${PISBX_REPO:-https://git.uni-luebeck.de/jeremyboy/pisbx}"
+REPO="${PISBX_REPO:-https://github.com/seasox/pisbx}"
 REF="${PISBX_REF:-main}"
 RAW_BASE="${REPO}/-/raw/${REF}"
 
 say() { printf '==> %s\n' "$*"; }
-die() { printf 'pisbx: error: %s\n' "$*" >&2; exit 1; }
+die() {
+  printf 'pisbx: error: %s\n' "$*" >&2
+  exit 1
+}
 
 [ -n "${HOME:-}" ] || die "HOME is not set"
-command -v docker >/dev/null 2>&1 \
-  || die "docker is required but was not found - see https://docs.docker.com/get-docker/"
+command -v docker >/dev/null 2>&1 ||
+  die "docker is required but was not found - see https://docs.docker.com/get-docker/"
 
 # fetch <url> <dest>: download with curl or wget, authenticated if PISBX_TOKEN is set.
 fetch() {
@@ -78,16 +81,16 @@ else
   tmpdir=$(mktemp -d)
   trap 'rm -rf "${tmpdir}"' EXIT HUP INT TERM
   say "downloading pisbx from ${RAW_BASE}"
-  fetch "${RAW_BASE}/pisbx.sh" "${tmpdir}/pisbx.sh" \
-    || die "could not download ${RAW_BASE}/pisbx.sh (does the ref '${REF}' exist?)"
-  fetch "${RAW_BASE}/Dockerfile.pi" "${tmpdir}/Dockerfile.pi" \
-    || die "could not download ${RAW_BASE}/Dockerfile.pi"
+  fetch "${RAW_BASE}/pisbx.sh" "${tmpdir}/pisbx.sh" ||
+    die "could not download ${RAW_BASE}/pisbx.sh (does the ref '${REF}' exist?)"
+  fetch "${RAW_BASE}/Dockerfile.pi" "${tmpdir}/Dockerfile.pi" ||
+    die "could not download ${RAW_BASE}/Dockerfile.pi"
   reject_html "${tmpdir}/pisbx.sh" "pisbx.sh"
   reject_html "${tmpdir}/Dockerfile.pi" "Dockerfile.pi"
-  head -c 2 "${tmpdir}/pisbx.sh" | grep -q '#!' \
-    || die "downloaded pisbx.sh does not look like a shell script"
-  head -n 1 "${tmpdir}/Dockerfile.pi" | grep -q '^FROM' \
-    || die "downloaded Dockerfile.pi does not look like a Dockerfile"
+  head -c 2 "${tmpdir}/pisbx.sh" | grep -q '#!' ||
+    die "downloaded pisbx.sh does not look like a shell script"
+  head -n 1 "${tmpdir}/Dockerfile.pi" | grep -q '^FROM' ||
+    die "downloaded Dockerfile.pi does not look like a Dockerfile"
   srcdir="${tmpdir}"
 fi
 
@@ -96,8 +99,8 @@ fi
 if [ "${PISBX_SKIP_BUILD:-0}" = "1" ]; then
   say "PISBX_SKIP_BUILD=1 - skipping the image build"
 else
-  docker info >/dev/null 2>&1 \
-    || die "docker is installed but the daemon is not reachable - is it running? (on Linux, your user may need to be in the docker group)"
+  docker info >/dev/null 2>&1 ||
+    die "docker is installed but the daemon is not reachable - is it running? (on Linux, your user may need to be in the docker group)"
   if [ "${PISBX_NOCACHE:-0}" = "1" ]; then
     say "PISBX_NOCACHE=1 - rebuilding the image without cache (picks up the latest pi release)"
     docker build --pull --no-cache -t pi-sandbox -f "${srcdir}/Dockerfile.pi" "${srcdir}"
@@ -117,8 +120,8 @@ else
   INSTALLDIR="${HOME}/.local/bin"
 fi
 case "${INSTALLDIR}" in
-  /*) ;;
-  *) INSTALLDIR="$(pwd)/${INSTALLDIR}" ;;
+/*) ;;
+*) INSTALLDIR="$(pwd)/${INSTALLDIR}" ;;
 esac
 
 mkdir -p "${INSTALLDIR}" || die "cannot create ${INSTALLDIR} - set INSTALLDIR to a writable directory"
@@ -127,11 +130,11 @@ chmod 0755 "${INSTALLDIR}/pisbx"
 say "installed ${INSTALLDIR}/pisbx"
 
 case ":${PATH}:" in
-  *":${INSTALLDIR}:"*) ;;
-  *)
-    say "note: ${INSTALLDIR} is not in your PATH"
-    say "  fix: export PATH=\"${INSTALLDIR}:\$PATH\"  (e.g. in ~/.bashrc)"
-    ;;
+*":${INSTALLDIR}:"*) ;;
+*)
+  say "note: ${INSTALLDIR} is not in your PATH"
+  say "  fix: export PATH=\"${INSTALLDIR}:\$PATH\"  (e.g. in ~/.bashrc)"
+  ;;
 esac
 
 confdir="${HOME}/.config/pisbx"
