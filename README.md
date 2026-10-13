@@ -88,6 +88,22 @@ Agent state is isolated per project by default. To share it across projects inst
 PISBX_VOLUME=pisbx pisbx
 ```
 
+### Project overlays
+
+If a project needs more tools than the base image provides, put a `Dockerfile.pisbx` in the project directory. It is a list of Dockerfile instructions that are layered on top of the `pi-sandbox` image:
+
+```dockerfile
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends python3 python3-pip \
+  && rm -rf /var/lib/apt/lists/*
+```
+
+When `pisbx` finds the file, it builds a per-project image (`pi-sandbox-overlay:<id>`) and runs that instead of the base image. The overlay is only rebuilt when `Dockerfile.pisbx` or the base image changes, so later launches start immediately.
+
+- `FROM pi-sandbox` is prepended automatically. If the file has its own `FROM` line, it is used as-is, e.g. for multi-stage builds; the last stage must then be based on `pi-sandbox`.
+- The build context is the project directory, so `COPY requirements.txt /tmp/` works. Changes to copied files are not detected; force a rebuild with `PISBX_REBUILD=1 pisbx`.
+- Keep the container user as `root` and leave the `ENTRYPOINT` alone: the agent state and credentials are mounted under `/root/.pi`, and the arguments to `pisbx` are passed to `pi`.
+
 ## Updating
 
 - **Launcher**: re-run the install command; re-installing over an existing install is safe.
@@ -103,6 +119,7 @@ PISBX_VOLUME=pisbx pisbx
 
 ```sh
 rm "$(command -v pisbx)"
+docker images -q pi-sandbox-overlay | xargs -r docker rmi              # project overlay images, if any
 docker rmi pi-sandbox
 docker volume ls -q --filter name=pisbx- | xargs -r docker volume rm   # optional: agent-state volumes
 ```
@@ -110,6 +127,7 @@ docker volume ls -q --filter name=pisbx- | xargs -r docker volume rm   # optiona
 ## How it works
 
 - **Image**: built from `Dockerfile.pi` (node:24-bookworm-slim with `pi` installed globally, plus git and ripgrep). The image entrypoint is `pi`.
+- **Overlays**: if `$PWD/Dockerfile.pisbx` exists, it is built into `pi-sandbox-overlay:<md5 of the workspace path>`. The image carries a `pisbx.overlay` label holding a hash of the overlay file and the base image ID, and is rebuilt only when that hash no longer matches. Rebuilds leave the previous image behind as a dangling `<none>` image; `docker image prune` removes those.
 - **Agent state**: a Docker volume mounted at `/root/.pi` persists sessions and agent data across runs. Each project directory gets its own volume (`pisbx-<md5 of the workspace path>`), so history doesn't leak between projects; volumes start empty, so anything `pi` installs at runtime (e.g. skills) is per-project too. Set `PISBX_VOLUME` to override the name (e.g. `PISBX_VOLUME=pisbx` for a single shared volume). Docker never garbage-collects volumes — list them with `docker volume ls --filter name=pisbx-` and remove stale ones with `docker volume rm`.
 - **Credentials**: `~/.config/pisbx/auth.json` and `settings.json` are required. `pisbx` refuses to start if either is missing — a missing source file would otherwise make docker create a *directory* in its place and break the mount. Copy them from an existing pi setup: `cp ~/.pi/agent/auth.json ~/.pi/agent/settings.json ~/.config/pisbx/`. Both files are mounted read-only into the container.
 - **Workspace**: your current directory is bind-mounted at `/workspace` (the container's workdir). Only files under `$PWD` are visible to the agent.
