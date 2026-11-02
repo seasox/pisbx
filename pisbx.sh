@@ -43,10 +43,15 @@ if [ -f "${OVERLAY}" ]; then
       exit 1
     }
   fi
+# Optional custom providers/models; mounted only if present.
+# Their API keys belong in auth.json ("<provider>": {"type": "api_key", ...}).
+if [ -f "${PI_AGENT_HOME}/models.json" ]; then
+  EXTRA_ARGS="${EXTRA_ARGS} -v ${PI_AGENT_HOME}/models.json:/root/.pi/agent/models.json:ro"
 fi
 
 # shellcheck disable=SC2086  # EXTRA_ARGS is intentionally word-split
 exec docker run --rm -it \
+  -e LOCAL_UID="$(id -u)" -e LOCAL_GID="$(id -g)" \
   --mount type=volume,src="${PISBX_VOLUME}",dst=/root/.pi \
   -v "$PWD:/workspace" \
   -v "${PI_AGENT_HOME}/auth.json:/root/.pi/agent/auth.json:ro" \

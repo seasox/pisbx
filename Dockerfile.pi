@@ -1,10 +1,25 @@
-FROM node:24-bookworm-slim
+FROM node:24-trixie
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends bash ca-certificates git ripgrep \
+  && apt-get install -y --no-install-recommends bash ca-certificates git gosu ripgrep sudo \
   && rm -rf /var/lib/apt/lists/*
 RUN npm config set min-release-age 7
 RUN npm install -g --ignore-scripts @earendil-works/pi-coding-agent
 
+# Run pi as the host user (LOCAL_UID/LOCAL_GID) with passwordless sudo, so
+# workspace files are not root-owned. The node user would clash on UID 1000.
+RUN userdel -r node
+COPY --chmod=0755 <<'EOF' /usr/local/bin/pisbx-entrypoint
+#!/bin/sh
+set -eu
+uid="${LOCAL_UID:-0}" gid="${LOCAL_GID:-0}"
+[ "$uid" = 0 ] && exec pi "$@"
+getent group "$gid" >/dev/null || groupadd -g "$gid" pi
+useradd -u "$uid" -g "$gid" -d /root -M pi
+echo 'pi ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/pi && chmod 0440 /etc/sudoers.d/pi
+chown -R "$uid:$gid" /root 2>/dev/null || true
+exec gosu pi pi "$@"
+EOF
+
 WORKDIR /workspace
-ENTRYPOINT ["pi"]
+ENTRYPOINT ["pisbx-entrypoint"]

@@ -2,7 +2,7 @@
 # (make install INSTALLDIR=/some/bin); otherwise install.sh picks the default.
 export INSTALLDIR
 
-.PHONY: all install refresh
+.PHONY: all install refresh deploy
 
 all:
 	docker build -t pi-sandbox -f Dockerfile.pi .
@@ -16,3 +16,8 @@ install:
 # (plain builds reuse the cached npm layer).
 refresh:
 	docker build --pull --no-cache -t pi-sandbox -f Dockerfile.pi .
+
+# Set up pisbx on a remote host: make deploy HOST=myserver
+deploy:
+	@test -n "$(HOST)" || { echo "usage: make deploy HOST=<host>" >&2; exit 1; }
+	sh ./deploy.sh "$(HOST)"

@@ -18,13 +18,13 @@ Run the [pi coding agent](https://www.npmjs.com/package/@earendil-works/pi-codin
 One line:
 
 ```sh
-curl -fsSL  | bash
+curl -fsSL https://raw.githubusercontent.com/seasox/pisbx/refs/heads/main/install.sh | bash
 ```
 
 or with wget:
 
 ```sh
-wget -qO- https://raw.githubusercontent.com/seasox/pisbx/refs/heads/main/install.s | bash
+wget -qO- https://raw.githubusercontent.com/seasox/pisbx/refs/heads/main/install.sh | bash
 ```
 
 The installer downloads the launcher and the `Dockerfile.pi`, builds the `pi-sandbox` image, and installs the `pisbx` launcher to `~/.local/bin` (or `/usr/local/bin` when run as root). If that directory is not on your `PATH`, it tells you how to fix that.
@@ -32,7 +32,7 @@ The installer downloads the launcher and the `Dockerfile.pi`, builds the `pi-san
 The one-liner needs the repository to be publicly readable. For a private repository, pass a GitLab access token instead (note that the token ends up in your shell history and process list):
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/seasox/pisbx/refs/heads/main/install.s | bash
+curl -fsSL https://raw.githubusercontent.com/seasox/pisbx/refs/heads/main/install.sh | bash
 ```
 
 Alternatively, install from a checkout — the installer then uses the local files:
@@ -87,23 +87,6 @@ Agent state is isolated per project by default. To share it across projects inst
 ```sh
 PISBX_VOLUME=pisbx pisbx
 ```
-
-### Project overlays
-
-If a project needs more tools than the base image provides, put a `Dockerfile.pisbx` in the project directory. It is a list of Dockerfile instructions that are layered on top of the `pi-sandbox` image:
-
-```dockerfile
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends python3 python3-pip \
-  && rm -rf /var/lib/apt/lists/*
-```
-
-When `pisbx` finds the file, it builds a per-project image (`pi-sandbox-overlay:<id>`) and runs that instead of the base image. The overlay is only rebuilt when `Dockerfile.pisbx` or the base image changes, so later launches start immediately.
-
-- `FROM pi-sandbox` is prepended automatically. If the file has its own `FROM` line, it is used as-is, e.g. for multi-stage builds; the last stage must then be based on `pi-sandbox`.
-- The build context is the project directory, so `COPY requirements.txt /tmp/` works. Changes to copied files are not detected; force a rebuild with `PISBX_REBUILD=1 pisbx`.
-- Keep the container user as `root` and leave the `ENTRYPOINT` alone: the agent state and credentials are mounted under `/root/.pi`, and the arguments to `pisbx` are passed to `pi`.
-
 ## Updating
 
 - **Launcher**: re-run the install command; re-installing over an existing install is safe.
@@ -123,6 +106,46 @@ docker images -q pi-sandbox-overlay | xargs -r docker rmi              # project
 docker rmi pi-sandbox
 docker volume ls -q --filter name=pisbx- | xargs -r docker volume rm   # optional: agent-state volumes
 ```
+
+### Project overlays
+
+If a project needs more tools than the base image provides, put a `Dockerfile.pisbx` in the project directory. It is a list of Dockerfile instructions that are layered on top of the `pi-sandbox` image:
+
+```dockerfile
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends python3 python3-pip \
+  && rm -rf /var/lib/apt/lists/*
+```
+
+When `pisbx` finds the file, it builds a per-project image (`pi-sandbox-overlay:<id>`) and runs that instead of the base image. The overlay is only rebuilt when `Dockerfile.pisbx` or the base image changes, so later launches start immediately.
+
+- `FROM pi-sandbox` is prepended automatically. If the file has its own `FROM` line, it is used as-is, e.g. for multi-stage builds; the last stage must then be based on `pi-sandbox`.
+- The build context is the project directory, so `COPY requirements.txt /tmp/` works. Changes to copied files are not detected; force a rebuild with `PISBX_REBUILD=1 pisbx`.
+- Keep the container user as `root` and leave the `ENTRYPOINT` alone: the agent state and credentials are mounted under `/root/.pi`, and the arguments to `pisbx` are passed to `pi`.
+=======
+### Custom models
+
+If `~/.config/pisbx/models.json` exists, it is mounted read-only as the agent's `models.json`, so custom providers and models are available in the sandbox.
+
+Store the key in `auth.json`, under the provider's name:
+
+```json
+{
+  "my-provider": { "type": "api_key", "key": "sk-..." }
+}
+```
+
+## Deploying to a remote host
+
+From a local checkout, set up pisbx on a server you can reach over SSH:
+
+```sh
+./deploy.sh myserver      # or: make deploy HOST=myserver
+```
+
+This copies `~/.pi/agent/auth.json`, `settings.json` and, if present, `models.json` to `~/.config/pisbx/` on the host (symlinks are resolved), copies the checkout to `~/pisbx` there and runs `install.sh`. Re-running it is safe. Override the files with `PISBX_AUTH` / `PISBX_SETTINGS` / `PISBX_MODELS` and the target directory with `PISBX_DEST`. API keys for custom providers are deployed with `auth.json` (see [Custom models](#custom-models)); environment variables are not copied. Requires `rsync` locally and on the host.
+
+One-time prerequisites on the host: Docker installed, your user in the `docker` group (`sudo usermod -aG docker $USER`), and a fresh login after the first install so the new group and `~/.local/bin` on `PATH` take effect.
 
 ## How it works
 
