@@ -43,6 +43,7 @@ if [ -f "${OVERLAY}" ]; then
       exit 1
     }
   fi
+fi
 # Optional custom providers/models; mounted only if present.
 # Their API keys belong in auth.json ("<provider>": {"type": "api_key", ...}).
 if [ -f "${PI_AGENT_HOME}/models.json" ]; then
