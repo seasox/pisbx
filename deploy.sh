@@ -40,7 +40,6 @@ dest=${PISBX_DEST:-pisbx}
 
 [ -f "${src}/install.sh" ] && [ -f "${src}/Dockerfile.pi" ] ||
   die "${src} does not look like a pisbx checkout"
-[ -f "${auth}" ] || die "${auth} not found (set PISBX_AUTH)"
 [ -f "${settings}" ] || die "${settings} not found (set PISBX_SETTINGS)"
 command -v rsync >/dev/null 2>&1 || die "rsync is required locally"
 
@@ -48,7 +47,9 @@ say "copying credentials to ${host}:~/.config/pisbx"
 ssh "${host}" 'mkdir -p ~/.config/pisbx && chmod 700 ~/.config/pisbx'
 # -L: copy the file a symlink points to (e.g. settings.json managed by a
 # dotfiles repo), not the symlink itself, which would dangle on the host.
-rsync -aL --chmod=F600 "${auth}" "${host}:.config/pisbx/auth.json"
+if [ -f "${auth}" ]; then
+  rsync -aL --chmod=F600 "${auth}" "${host}:.config/pisbx/auth.json"
+fi
 rsync -aL --chmod=F600 "${settings}" "${host}:.config/pisbx/settings.json"
 if [ -f "${models}" ]; then
   rsync -aL --chmod=F600 "${models}" "${host}:.config/pisbx/models.json"
